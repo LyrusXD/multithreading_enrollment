@@ -9,6 +9,15 @@
 #define TOTAL_STUDENTS 2
 #define TOTAL_QUEUES 3
 #define RANGE_OF_ARRIVAL_TIMES 120;
+
+typedef struct{
+  int id;
+  int arrivalTime;
+  int processedTime;
+  int priority;
+  int section;
+} Student;
+
 pthread_mutex_t section1Mutex;
 pthread_mutex_t section2Mutex;
 pthread_mutex_t section3Mutex;
@@ -32,13 +41,6 @@ Student queueGS[TOTAL_STUDENTS];
 Student queueRS[TOTAL_STUDENTS];
 Student queueEE[TOTAL_STUDENTS];
 
-typedef struct{
-  int id;
-  int arrivalTime;
-  int processedTime;
-  int priority;
-  int section;
-} Student;
 //Finish initializing all variables for this class
 
 //Implement printEvent
@@ -61,7 +63,7 @@ void *studentT(void *param){
   int arrivalTime = rand() % RANGE_OF_ARRIVAL_TIMES;
   studentProfile.arrivalTime = arrivalTime;
   //randomize arrival time
-  sleep(arrivalTime)
+  sleep(arrivalTime);
 
   //add to queue depending on priority via addStudentToQueue() pass by reference? or keep track through global array[student] variable?
   return NULL;
@@ -85,7 +87,9 @@ void processStudent(){
 }
 
 int main(int argc, char *argv[]){
+  //  Student studentList = malloc(TOTAL_STUDENTS * sizeof(Student));
   //Initialize all mutex and semaphores
+  //  printf("%d %d",sizeof(Student),sizeof(studentList));
   pthread_mutex_init(&section1Mutex,NULL);
   pthread_mutex_init(&section2Mutex,NULL);
   pthread_mutex_init(&section3Mutex,NULL);
@@ -108,25 +112,31 @@ int main(int argc, char *argv[]){
   //students in the for loop iteration instead.
   int i;
 
-  for(int i = 0; i < TOTAL_QUEUES;i++){
-    pthread_t queue;
+  //  for(i = 0; i < TOTAL_QUEUES;i++){
+    pthread_t queueThread;
     pthread_attr_t queueAttr;
     pthread_attr_init(&queueAttr);
-    pthread_create(&queue,&queueAttr,queue,NULL);
+    pthread_create(&queueThread,&queueAttr,queue,NULL);
     
-  }
+    //  }
 
+  /* for(i = 0; i < TOTAL_STUDENTS; i++){ */
+  /*   studentList[i].id = i+1; */
+  /*   studentList[i].arrivalTime = ; */
+  /*   studentList[i].priority = ; */
+  /*   studentList[i].section  */
+
+  /* } */
   for(i = 0; i < TOTAL_STUDENTS; i++){
     studentIDs[i] = i+1;
     pthread_t studentThread;
     pthread_attr_t studentAttr; //Do we need this?
     pthread_attr_init(&studentAttr); //Do we need this?
     pthread_create(&studentThread, &studentAttr, studentT, &studentIDs[i]);
-
   }
 
   sleep(1);
-  pthread_join(queue1,NULL);
+  pthread_join(queueThread,NULL);
 
   //Create queue threads
 
