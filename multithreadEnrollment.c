@@ -18,6 +18,9 @@ typedef struct{
   int section;
 } Student;
 
+pthread_t queueGSThread;
+pthread_t queueRSThread;
+pthread_t queueEEThread;
 pthread_mutex_t section1Mutex;
 pthread_mutex_t section2Mutex;
 pthread_mutex_t section3Mutex;
@@ -38,11 +41,14 @@ pthread_mutex_t queueEEMutexCounter;
 int totalStudentsProcessed;
 int studentIDs[TOTAL_STUDENTS];
 Student queueGS[TOTAL_STUDENTS];
-int queueGSCounter;
+int queueGSHeadCounter;
+int queueGSTailCounter;
 Student queueRS[TOTAL_STUDENTS];
-int queueRSCounter;
+int queueRSHeadCounter;
+int queueRSTailCounter;
 Student queueEE[TOTAL_STUDENTS];
-int queueEECounter;
+int queueEETailCounter;
+int queueEEHeadCounter;
 Student studentList[TOTAL_STUDENTS];
 
 //Finish initializing all variables for this class
@@ -58,10 +64,12 @@ void addStudentToQueue(Student *s){
   int priority = studentProfile.priority;
   switch (priority){
   case 1:
+    //in case multiple students try to add to the GS queue around the 
+    //same time
     pthread_mutex_lock(&queueGSMutex);
     pthread_mutex_lock(&queueGSMutexCounter);
-    queueGS[queueGSCounter] = studentProfile;
-    queueGSCounter++;
+    queueGS[queueGSTailCounter] = studentProfile;
+    queueGSTailCounter++;
     pthread_mutex_unlock(&queueGSMutex);
     pthread_mutex_unlock(&queueGSMutexCounter);
     sprintf(event, "Student %d is added to GS Queue",studentProfile.id);
@@ -71,8 +79,8 @@ void addStudentToQueue(Student *s){
   case 2:
     pthread_mutex_lock(&queueRSMutex);
     pthread_mutex_lock(&queueRSMutexCounter);
-    queueRS[queueRSCounter] = studentProfile;
-    queueRSCounter++;
+    queueRS[queueRSTailCounter] = studentProfile;
+    queueRSTailCounter++;
     pthread_mutex_unlock(&queueRSMutex);
     pthread_mutex_unlock(&queueRSMutexCounter);
     sprintf(event, "Student %d is added to RS Queue",studentProfile.id);
@@ -83,8 +91,8 @@ void addStudentToQueue(Student *s){
   case 3:
     pthread_mutex_lock(&queueEEMutex);
     pthread_mutex_lock(&queueEEMutexCounter);
-    queueEE[queueEECounter] = studentProfile;
-    queueEECounter++;
+    queueEE[queueEETailCounter] = studentProfile;
+    queueEETailCounter++;
     pthread_mutex_unlock(&queueEEMutex);
     pthread_mutex_unlock(&queueEEMutexCounter);
     sprintf(event, "Student %d is added to EE Queue",studentProfile.id);
@@ -95,8 +103,8 @@ void addStudentToQueue(Student *s){
   default:
     pthread_mutex_lock(&queueEEMutex);
     pthread_mutex_lock(&queueEEMutexCounter);
-    queueEE[queueEECounter] = studentProfile;
-    queueEECounter++;
+    queueEE[queueEETailCounter] = studentProfile;
+    queueEETailCounter++;
     pthread_mutex_unlock(&queueEEMutex);
     pthread_mutex_unlock(&queueEEMutexCounter);
     sprintf(event, "Student %d is added to EE Queue",studentProfile.id);
@@ -119,22 +127,113 @@ void *studentT(void *param){
   return NULL;
 }
 
+void addToSection(Student *s){
+    //acquire lock to section
+    //acquire lock to section counter
+    //add student to section
+    //unlock section counter
+    //unlock section
+   switch(section){
+    case 1:
+    pthread_mutex_lock(&section1Mutex);
+    pthread_mutex_lock(&section1MutexCounter);
+    
+    pthread_mutex_unlock(&section1MutexCounter);
+    pthread_mutex_unlock(&section1Mutex);
 
-void *queue(void *param){
-  // process student via processStudent()
-  printf("Yay queues work\n");
-  //may use mutexes and semaphores
+      break;
+    case 2:
+      break;
+    case 3:
+      break;
+   case 4:
+     break;
+   default://any section thats open
+      break;
+    }
 }
-
 void processStudent(){
   //add student to section if not full otherwise drop
+  char startProcessingEvent[80];
+  char endProcessingEvent[80];
+  int processingTime;
+  int priority;
+  int section;
+  int id;
+  Student s;
+  if(pthread_equal(pthread_self(),queueGSThread)){
+    //calculate random wait time
+    processingTime = rand() % 2 + 1;
+    sem_wait(&queueGSSem);
+    pthread_mutex_lock(&queueGSMutex);
+    //pthread_mutex_lock(&queueGSHeadMutexCounter);
+    s = queueGS[queueGSHeadCounter];
+    queueGSHeadCounter++;
+    pthread_mutex_unlock(&queueGSMutex);
+    //pthread_mutex_unlock(&queueGSMutexCounter);
+    addToSection(&s);
+  }
+  else if(pthread_equal(pthread_self(),queueRSThread)){
+    processingTime = rand() % 3 + 2;
+    //calculate random wait time
+    sem_wait(&queueRSSem);
+    pthread_mutex_lock(&queueRSMutex);//do we need?
+    pthread_mutex_lock(&queueRSMutexCounter);//do we need?
+    s = queueRS[queueRSHeadCounter];
+    queueRSHeadCounter++;
+    pthread_mutex_unlock(&queueRSMutex);//do we need?
+    pthread_mutex_unlock(&queueRSMutexCounter);//do we need?
+    addToSection(&s);
+    //acquire lock to section
+    //acquire lock to section counter
+    //add student to section
+    //unlock section counter
+    //unlock section
+
+  }
+  else if(pthread_equal(pthread_self(),queueEEThread)){
+    processingTime = rand() % 4 + 3;
+    //calculate random wait time
+    sem_wait(&queueEESem);
+    pthread_mutex_lock(&queueEEMutex);//do we need?
+    pthread_mutex_lock(&queueEEMutexCounter);//do we need?
+    s = queueEE[queueEEHeadCounter];
+    queueEEHeadCounter++;
+    pthread_mutex_unlock(&queueEEMutex);//do we need?
+    pthread_mutex_unlock(&queueEEMutexCounter);//do we need?
+    addToSection(&s);
+    //acquire lock to section
+    //acquire lock to section counter
+    //add student to section
+    //unlock section counter
+    //unlock section
+    
+  }
+  
   //print event via printEvent()
 }
 
+void *queue(void *param){
+  // process student via processStudent()
+  do{
+    processStudent();
+  }while(totalStudentsProcessed < TOTAL_STUDENTS && (); 
+  //Do we have to lock this?
+  //for the totalStudentsProcessed, how do we want to trigger this?
+
+  return NULL;
+  //may use mutexes and semaphores
+}
+
+
 int main(int argc, char *argv[]){
-  queueGSCounter = 0;
-  queueRSCounter = 0;
-  queueEECounter = 0;
+  queueGSHeadCounter = 0;
+  queueRSHeadCounter = 0;
+  queueEEHeadCounter = 0;
+  queueGSTailCounter = 0;
+  queueRSTailCounter = 0;
+  queueEETailCounter = 0;
+  totalStudentsProcessed = 0;
   //Initialize all mutex and semaphores
 
   pthread_mutex_init(&section1Mutex,NULL);
@@ -163,17 +262,15 @@ int main(int argc, char *argv[]){
 
   //Create queue threads
 
-  pthread_t queueGSThread;
+
   pthread_attr_t queueGSAttr;
   pthread_attr_init(&queueGSAttr);
   pthread_create(&queueGSThread,&queueGSAttr,queue,NULL);
 
-  pthread_t queueRSThread;
   pthread_attr_t queueRSAttr;
   pthread_attr_init(&queueRSAttr);
   pthread_create(&queueRSThread,&queueRSAttr,queue,NULL);
 
-  pthread_t queueEEThread;
   pthread_attr_t queueEEAttr;
   pthread_attr_init(&queueEEAttr);
   pthread_create(&queueEEThread,&queueEEAttr,queue,NULL);
